@@ -1,20 +1,115 @@
 #!/usr/bin/env node
-import * as cdk from 'aws-cdk-lib/core';
-import { EventTicketingV2Stack } from '../lib/event-ticketing-v2-stack';
+import 'source-map-support/register';
+import * as cdk from 'aws-cdk-lib';
+import { FoundationStack } from '../lib/stacks/foundation-stack';
+import { AuthStack } from '../lib/stacks/auth-stack';
+import { DatabaseStack } from '../lib/stacks/database-stack';
+import { StorageStack } from '../lib/stacks/storage-stack';
+import { MessagingStack } from '../lib/stacks/messaging-stack';
+import { ApiStack } from '../lib/stacks/api-stack';
+import { ObservabilityStack } from '../lib/stacks/observability-stack';
 
 const app = new cdk.App();
-new EventTicketingV2Stack(app, 'EventTicketingV2Stack', {
-  /* If you don't specify 'env', this stack will be environment-agnostic.
-   * Account/Region-dependent features and context lookups will not work,
-   * but a single synthesized template can be deployed anywhere. */
 
-  /* Uncomment the next line to specialize this stack for the AWS Account
-   * and Region that are implied by the current CLI configuration. */
-  // env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+// Read environment from context or default to 'dev'
+const environment = app.node.tryGetContext('environment') ?? 'dev';
+const projectName = 'event-ticketing-v2';
 
-  /* Uncomment the next line if you know exactly what Account and Region you
-   * want to deploy the stack to. */
-  // env: { account: '123456789012', region: 'us-east-1' },
+const env = {
+  account: process.env.CDK_DEFAULT_ACCOUNT,
+  region: process.env.CDK_DEFAULT_REGION ?? 'us-east-1',
+};
 
-  /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
-});
+const commonProps = { environment, projectName, env };
+
+// ==========================================
+// Stack 1: Foundation (KMS keys)
+// No dependencies
+// ==========================================
+const foundationStack = new FoundationStack(
+  app,
+  `${projectName}-foundation-${environment}`,
+  commonProps
+);
+
+// ==========================================
+// Stack 2: Auth (Cognito)
+// No dependencies on other stacks
+// ==========================================
+const authStack = new AuthStack(
+  app,
+  `${projectName}-auth-${environment}`,
+  commonProps
+);
+authStack.addDependency(foundationStack);
+
+// ==========================================
+// Stack 3: Database (DynamoDB)
+// Depends on: FoundationStack (KMS key)
+// ==========================================
+const databaseStack = new DatabaseStack(
+  app,
+  `${projectName}-database-${environment}`,
+  {
+    ...commonProps,
+    databaseEncryptionKey: foundationStack.databaseEncryptionKey,
+  }
+);
+databaseStack.addDependency(foundationStack);
+
+// ==========================================
+// Stack 4: Storage (S3 buckets)
+// Depends on: FoundationStack (KMS key)
+// ==========================================
+const storageStack = new StorageStack(
+  app,
+  `${projectName}-storage-${environment}`,
+  {
+    ...commonProps,
+    storageEncryptionKey: foundationStack.storageEncryptionKey,
+  }
+);
+storageStack.addDependency(foundationStack);
+
+// ==========================================
+// Stack 5: Messaging (SQS + EventBridge)
+// No KMS dependency (uses AWS-managed keys for now)
+// ==========================================
+const messagingStack = new MessagingStack(
+  app,
+  `${projectName}-messaging-${environment}`,
+  commonProps
+);
+
+// ==========================================
+// Stack 6: API (HTTP API Gateway)
+// Depends on: Auth (Cognito authorizer), Database, Messaging
+// ==========================================
+const apiStack = new ApiStack(
+  app,
+  `${projectName}-api-${environment}`,
+  commonProps
+);
+apiStack.addDependency(authStack);
+apiStack.addDependency(databaseStack);
+apiStack.addDependency(messagingStack);
+apiStack.addDependency(storageStack);
+
+// ==========================================
+// Stack 7: Observability (CloudWatch)
+// Depends on all other stacks (monitors them)
+// ==========================================
+const observabilityStack = new ObservabilityStack(
+  app,
+  `${projectName}-observability-${environment}`,
+  commonProps
+);
+observabilityStack.addDependency(apiStack);
+
+// Suppress unused variable warnings - stacks are registered with the app
+void authStack;
+void databaseStack;
+void storageStack;
+void messagingStack;
+void apiStack;
+void observabilityStack;

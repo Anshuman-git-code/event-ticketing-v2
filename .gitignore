@@ -1,5 +1,7 @@
 # CDK
 *.js
+!jest.config.js
+!eslint.config.mjs
 *.d.ts
 node_modules
 cdk.out
@@ -16,6 +18,9 @@ cdk.out
 *.swp
 *.swo
 *~
+
+# Kiro specs (project-specific, optional to commit)
+.kiro/
 
 # OS
 .DS_Store
