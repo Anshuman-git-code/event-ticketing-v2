@@ -82,18 +82,33 @@ const messagingStack = new MessagingStack(
 );
 
 // ==========================================
-// Stack 6: API (HTTP API Gateway)
-// Depends on: Auth (Cognito authorizer), Database, Messaging
+// Stack 6: API (HTTP API Gateway + Lambda functions)
+// Depends on: Auth, Database, Storage, Messaging, Foundation
 // ==========================================
 const apiStack = new ApiStack(
   app,
   `${projectName}-api-${environment}`,
-  commonProps
+  {
+    ...commonProps,
+    // From DatabaseStack
+    eventsTable: databaseStack.eventsTable,
+    registrationsTable: databaseStack.registrationsTable,
+    ticketsTable: databaseStack.ticketsTable,
+    // From StorageStack
+    ticketsBucket: storageStack.ticketsBucket,
+    // From MessagingStack
+    ticketGenerationQueue: messagingStack.ticketGenerationQueue,
+    // From AuthStack
+    userPool: authStack.userPool,
+    // From FoundationStack
+    webAcl: foundationStack.webAcl,
+  }
 );
 apiStack.addDependency(authStack);
 apiStack.addDependency(databaseStack);
 apiStack.addDependency(messagingStack);
 apiStack.addDependency(storageStack);
+apiStack.addDependency(foundationStack);
 
 // ==========================================
 // Stack 7: Observability (CloudWatch)
