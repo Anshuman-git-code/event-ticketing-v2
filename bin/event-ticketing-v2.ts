@@ -100,6 +100,7 @@ const apiStack = new ApiStack(
     ticketGenerationQueue: messagingStack.ticketGenerationQueue,
     // From AuthStack
     userPool: authStack.userPool,
+    userPoolClient: authStack.userPoolClient,
     // From FoundationStack
     webAcl: foundationStack.webAcl,
   }

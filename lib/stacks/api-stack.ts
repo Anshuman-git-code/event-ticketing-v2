@@ -26,6 +26,7 @@ export interface ApiStackProps extends cdk.StackProps {
   ticketGenerationQueue: sqs.Queue;
   // From AuthStack
   userPool: cognito.UserPool;
+  userPoolClient: cognito.UserPoolClient;
   // From FoundationStack
   webAcl: wafv2.CfnWebACL;
 }
@@ -47,6 +48,7 @@ export class ApiStack extends cdk.Stack {
         minify: true,
         sourceMap: true,
         externalModules: ['@aws-sdk/*'],
+        forceDockerBundling: false,  // Use local esbuild, not Docker
       },
     };
 
@@ -128,6 +130,15 @@ export class ApiStack extends cdk.Stack {
       memorySize: 512,                      // PDF generation needs more RAM
       timeout: cdk.Duration.seconds(60),    // PDF + S3 upload takes longer
       environment: { ...commonEnv, POWERTOOLS_SERVICE_NAME: 'generateTicket' },
+      bundling: {
+        minify: true,
+        sourceMap: true,
+        forceDockerBundling: false,
+        externalModules: ['@aws-sdk/*'],
+        // pdfkit and qrcode use CJS internals that esbuild can't tree-shake cleanly
+        // nodeModules copies them into the bundle as-is
+        nodeModules: ['pdfkit', 'qrcode'],
+      },
     });
 
     const getTicketDownloadFn = new NodejsFunction(this, 'GetTicketDownloadFn', {
@@ -204,7 +215,7 @@ export class ApiStack extends cdk.Stack {
       'CognitoAuthorizer',
       `https://cognito-idp.${this.region}.amazonaws.com/${props.userPool.userPoolId}`,
       {
-        jwtAudience: [],
+        jwtAudience: [props.userPoolClient.userPoolClientId],
         identitySource: ['$request.header.Authorization'],
       }
     );
