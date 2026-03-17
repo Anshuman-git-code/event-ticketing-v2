@@ -46,9 +46,9 @@ export class ApiStack extends cdk.Stack {
       timeout: cdk.Duration.seconds(30),
       bundling: {
         minify: true,
-        sourceMap: true,
+        sourceMap: false,
         externalModules: ['@aws-sdk/*'],
-        forceDockerBundling: false,  // Use local esbuild, not Docker
+        forceDockerBundling: false,
       },
     };
 
@@ -298,13 +298,11 @@ export class ApiStack extends cdk.Stack {
       authorizer,
     });
 
-    // ==========================================
-    // WAF association
-    // ==========================================
-    new wafv2.CfnWebACLAssociation(this, 'ApiWafAssociation', {
-      resourceArn: `arn:aws:apigateway:${this.region}::/restapis/${this.httpApi.apiId}/stages/$default`,
-      webAclArn: props.webAcl.attrArn,
-    });
+    // NOTE: WAF association with HTTP API v2 is not supported via CfnWebACLAssociation.
+    // HTTP API Gateway v2 does not have a standard ARN format for WAF association.
+    // The WAF WebACL is deployed and can be associated manually if needed,
+    // or via CloudFront in Phase 5 when we add the CDN layer.
+    // new wafv2.CfnWebACLAssociation(this, 'ApiWafAssociation', { ... });
 
     // Tags
     cdk.Tags.of(this).add('Environment', props.environment);

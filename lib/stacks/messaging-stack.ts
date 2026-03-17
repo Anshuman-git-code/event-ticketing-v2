@@ -33,7 +33,7 @@ export class MessagingStack extends cdk.Stack {
       queueName: `${props.projectName}-ticket-generation-${props.environment}.fifo`,
       fifo: true,
       contentBasedDeduplication: true,
-      visibilityTimeout: cdk.Duration.seconds(30),
+      visibilityTimeout: cdk.Duration.seconds(360), // Must be >= 6x Lambda timeout (60s * 6 = 360s)
       retentionPeriod: cdk.Duration.days(4),
       deadLetterQueue: {
         queue: this.ticketGenerationDLQ,
