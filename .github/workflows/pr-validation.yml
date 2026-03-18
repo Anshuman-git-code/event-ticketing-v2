@@ -1,0 +1,60 @@
+name: PR Validation
+
+# Trigger: runs on every pull request targeting the main branch
+on:
+  pull_request:
+    branches: [main]
+
+# Permissions needed for OIDC authentication
+permissions:
+  id-token: write   # Required for OIDC token generation
+  contents: read    # Required to checkout the code
+
+jobs:
+  validate:
+    name: Lint, Test, Build & Synth
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Download the code from GitHub
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Install Node.js 20 (matches our Lambda runtime)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'  # Cache node_modules between runs (faster)
+
+      # Step 3: Install dependencies (uses package-lock.json for reproducibility)
+      - name: Install dependencies
+        run: npm ci
+
+      # Step 4: Run ESLint — catches code style and potential bugs
+      - name: Run linter
+        run: npm run lint
+
+      # Step 5: Run Jest unit tests
+      - name: Run tests
+        run: npm test
+
+      # Step 6: Compile TypeScript — catches type errors
+      - name: Build TypeScript
+        run: npm run build
+
+      # Step 7: Authenticate to AWS using OIDC (no stored credentials!)
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-session-name: GitHubActions-PR-Validation
+
+      # Step 8: CDK synth — verifies CloudFormation templates generate correctly
+      # This catches CDK config errors without deploying anything
+      - name: CDK Synth
+        run: npx cdk synth --all --quiet
+        env:
+          CDK_DEFAULT_ACCOUNT: ${{ secrets.AWS_ACCOUNT_ID }}
+          CDK_DEFAULT_REGION: ${{ secrets.AWS_REGION }}
