@@ -118,7 +118,10 @@ apiStack.addDependency(foundationStack);
 const observabilityStack = new ObservabilityStack(
   app,
   `${projectName}-observability-${environment}`,
-  commonProps
+  {
+    ...commonProps,
+    alarmEmail: 'anshumanmohapatra@gmail.com', // Replace with your actual email
+  }
 );
 observabilityStack.addDependency(apiStack);
 
