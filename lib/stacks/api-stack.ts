@@ -44,6 +44,7 @@ export class ApiStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       memorySize: 256,
       timeout: cdk.Duration.seconds(30),
+      tracing: lambda.Tracing.ACTIVE, // X-Ray tracing
       bundling: {
         minify: true,
         sourceMap: false,
