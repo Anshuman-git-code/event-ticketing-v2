@@ -204,7 +204,10 @@ export class ApiStack extends cdk.Stack {
           apigatewayv2.CorsHttpMethod.DELETE,
           apigatewayv2.CorsHttpMethod.OPTIONS,
         ],
-        allowOrigins: ['*'], // TODO: Week 5 — restrict to CloudFront domain
+        allowOrigins: [
+          'http://localhost:5173',
+          'https://dgwpgtk36nw9c.cloudfront.net',
+        ],
         maxAge: cdk.Duration.days(1),
       },
     });

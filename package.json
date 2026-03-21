@@ -11,7 +11,7 @@
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "format": "prettier --write \"**/*.ts\"",
-    "cdk": "cdk",
+    "deploy:frontend": "cd frontend && npm run build && cd .. && aws s3 sync frontend/dist/ s3://event-ticketing-v2-frontend-dev-690081480550 --delete --region us-east-1 && aws cloudfront create-invalidation --distribution-id E2MI1KEC3M813Z --paths '/*' --region us-east-1",
     "prepare": "husky"
   },
   "devDependencies": {
