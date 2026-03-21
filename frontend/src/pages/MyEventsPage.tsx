@@ -4,11 +4,11 @@ import apiClient from '../api/client';
 
 interface Event {
   eventId: string;
-  title: string;
+  name: string;
   date: string;
   location: string;
   availableCapacity: number;
-  totalCapacity: number;
+  capacity: number;
   status: string;
 }
 
@@ -53,10 +53,10 @@ export default function MyEventsPage() {
           {events.map(event => (
             <div key={event.eventId} className="bg-white rounded-lg shadow p-5 flex justify-between items-center">
               <div>
-                <h2 className="font-semibold">{event.title}</h2>
+                <h2 className="font-semibold">{event.name}</h2>
                 <p className="text-sm text-gray-500">📅 {new Date(event.date).toLocaleDateString()} · 📍 {event.location}</p>
                 <p className="text-xs text-gray-400 mt-1">
-                  {event.totalCapacity - event.availableCapacity} registered / {event.totalCapacity} capacity
+                  {event.capacity - event.availableCapacity} registered / {event.capacity} capacity
                 </p>
               </div>
               <div className="flex gap-2">

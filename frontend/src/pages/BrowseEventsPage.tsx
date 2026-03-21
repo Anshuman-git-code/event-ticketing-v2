@@ -4,13 +4,13 @@ import apiClient from '../api/client';
 
 interface Event {
   eventId: string;
-  title: string;
+  name: string;
   description: string;
   date: string;
   location: string;
   price: number;
   availableCapacity: number;
-  totalCapacity: number;
+  capacity: number;
   category: string;
 }
 
@@ -48,12 +48,12 @@ export default function BrowseEventsPage() {
                   {event.price === 0 ? 'Free' : `$${event.price}`}
                 </span>
               </div>
-              <h2 className="text-lg font-semibold mt-2 mb-1">{event.title}</h2>
+              <h2 className="text-lg font-semibold mt-2 mb-1">{event.name}</h2>
               <p className="text-gray-500 text-sm mb-3 line-clamp-2">{event.description}</p>
               <div className="text-xs text-gray-400 space-y-1">
                 <p>📅 {new Date(event.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</p>
                 <p>📍 {event.location}</p>
-                <p>🎟 {event.availableCapacity} / {event.totalCapacity} spots left</p>
+                <p>🎟 {event.availableCapacity} / {event.capacity} spots left</p>
               </div>
             </Link>
           ))}

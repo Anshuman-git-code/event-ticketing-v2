@@ -6,13 +6,13 @@ import { v4 as uuidv4 } from 'uuid';
 
 interface Event {
   eventId: string;
-  title: string;
+  name: string;
   description: string;
   date: string;
   location: string;
   price: number;
   availableCapacity: number;
-  totalCapacity: number;
+  capacity: number;
   category: string;
   organizerName: string;
 }
@@ -61,13 +61,13 @@ export default function EventDetailPage() {
           <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">{event.category}</span>
           <span className="text-xl font-bold text-green-600">{event.price === 0 ? 'Free' : `$${event.price}`}</span>
         </div>
-        <h1 className="text-2xl font-bold mb-2">{event.title}</h1>
+        <h1 className="text-2xl font-bold mb-2">{event.name}</h1>
         <p className="text-gray-600 mb-4">{event.description}</p>
         <div className="space-y-2 text-sm text-gray-500 mb-6">
           <p>📅 {new Date(event.date).toLocaleString()}</p>
           <p>📍 {event.location}</p>
           <p>👤 Organized by {event.organizerName}</p>
-          <p>🎟 {event.availableCapacity} of {event.totalCapacity} spots remaining</p>
+          <p>🎟 {event.availableCapacity} of {event.capacity} spots remaining</p>
         </div>
         {message && (
           <p className={`text-sm mb-4 ${message.startsWith('✅') ? 'text-green-600' : 'text-red-500'}`}>{message}</p>
