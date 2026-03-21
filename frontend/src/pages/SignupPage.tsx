@@ -2,21 +2,24 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 
+type Step = 'signup' | 'confirm';
+
 export default function SignupPage() {
-  const { register } = useAuth();
+  const { register, confirmAccount } = useAuth();
   const navigate = useNavigate();
+  const [step, setStep] = useState<Step>('signup');
   const [form, setForm] = useState({ email: '', password: '', name: '', role: 'Attendees' as 'Attendees' | 'Organizers' });
+  const [code, setCode] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
       await register(form.email, form.password, form.name, form.role);
-      setSuccess(true);
+      setStep('confirm'); // Move to OTP step
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Signup failed');
     } finally {
@@ -24,26 +27,63 @@ export default function SignupPage() {
     }
   };
 
-  if (success) {
+  const handleConfirm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await confirmAccount(form.email, code);
+      navigate('/login', { state: { message: 'Account confirmed! Please sign in.' } });
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Confirmation failed. Check the code and try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 2: OTP confirmation screen
+  if (step === 'confirm') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full bg-white rounded-lg shadow p-8 text-center">
-          <h2 className="text-xl font-bold text-green-600 mb-2">Account Created!</h2>
-          <p className="text-gray-600 mb-4">Check your email for a verification code, then sign in.</p>
-          <button onClick={() => navigate('/login')} className="bg-blue-600 text-white py-2 px-6 rounded-md hover:bg-blue-700">
-            Go to Login
-          </button>
+        <div className="max-w-md w-full bg-white rounded-lg shadow p-8">
+          <h1 className="text-2xl font-bold text-center mb-2">Check Your Email</h1>
+          <p className="text-gray-500 text-sm text-center mb-6">
+            We sent a 6-digit verification code to <span className="font-medium text-gray-700">{form.email}</span>
+          </p>
+          {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+          <form onSubmit={handleConfirm} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Verification Code</label>
+              <input
+                type="text"
+                value={code}
+                onChange={e => setCode(e.target.value.trim())}
+                required
+                maxLength={6}
+                placeholder="123456"
+                className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-center text-xl tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <button type="submit" disabled={loading}
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50">
+              {loading ? 'Confirming...' : 'Confirm Account'}
+            </button>
+          </form>
+          <p className="text-center text-xs text-gray-400 mt-4">
+            Didn't receive it? Check your spam folder. Code expires in 24 hours.
+          </p>
         </div>
       </div>
     );
   }
 
+  // Step 1: Signup form
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full bg-white rounded-lg shadow p-8">
         <h1 className="text-2xl font-bold text-center mb-6">Create Account</h1>
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSignup} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">Full Name</label>
             <input type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required

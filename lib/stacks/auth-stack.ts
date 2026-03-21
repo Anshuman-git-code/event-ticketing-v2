@@ -1,6 +1,10 @@
 import * as cdk from 'aws-cdk-lib';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as iam from 'aws-cdk-lib/aws-iam';
+import * as path from 'path';
+import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Construct } from 'constructs';
 
 export interface AuthStackProps extends cdk.StackProps {
@@ -85,6 +89,35 @@ export class AuthStack extends cdk.Stack {
       // Prevent user existence errors (security best practice)
       preventUserExistenceErrors: true,
     });
+
+    // ==========================================
+    // Post-Confirmation Lambda Trigger
+    // Automatically adds confirmed users to the correct Cognito group
+    // based on the role they selected at signup (clientMetadata.role)
+    // ==========================================
+    const postConfirmationFn = new NodejsFunction(this, 'PostConfirmationFn', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      entry: path.join(__dirname, '../../lambda/postConfirmation/index.ts'),
+      handler: 'handler',
+      timeout: cdk.Duration.seconds(10),
+      bundling: {
+        minify: true,
+        externalModules: ['@aws-sdk/*'],
+        forceDockerBundling: false,
+      },
+    });
+
+    // Allow the Lambda to add users to groups
+    postConfirmationFn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['cognito-idp:AdminAddUserToGroup'],
+      resources: ['*'], // scoped to the user pool at runtime via event.userPoolId
+    }));
+
+    // Wire it as the Post-Confirmation trigger
+    this.userPool.addTrigger(
+      cognito.UserPoolOperation.POST_CONFIRMATION,
+      postConfirmationFn
+    );
 
     // ==========================================
     // User Groups (for role-based access)

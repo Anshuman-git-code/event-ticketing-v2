@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { signIn, signOut, signUp, getCurrentUser, fetchAuthSession } from 'aws-amplify/auth';
+import { signIn, signOut, signUp, confirmSignUp, getCurrentUser, fetchAuthSession } from 'aws-amplify/auth';
 
 interface User {
   userId: string;
@@ -11,9 +11,10 @@ interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ nextStep: string }>;
   logout: () => Promise<void>;
   register: (email: string, password: string, name: string, role: 'Organizers' | 'Attendees') => Promise<void>;
+  confirmAccount: (email: string, code: string) => Promise<void>;
   isOrganizer: boolean;
 }
 
@@ -44,9 +45,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string) => {
-    await signIn({ username: email, password });
-    await loadUser();
+  const login = async (email: string, password: string): Promise<{ nextStep: string }> => {
+    const result = await signIn({ username: email, password });
+    const step = result.nextStep.signInStep;
+    if (step === 'DONE') {
+      await loadUser();
+    }
+    return { nextStep: step };
   };
 
   const logout = async () => {
@@ -65,6 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const confirmAccount = async (email: string, code: string) => {
+    await confirmSignUp({ username: email, confirmationCode: code });
+  };
+
   return (
     <AuthContext.Provider value={{
       user,
@@ -72,6 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login,
       logout,
       register,
+      confirmAccount,
       isOrganizer: user?.groups.includes('Organizers') ?? false,
     }}>
       {children}

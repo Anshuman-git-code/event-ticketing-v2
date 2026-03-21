@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const successMessage = (location.state as { message?: string })?.message ?? '';
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -15,10 +18,23 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
-      navigate('/');
+      const { nextStep } = await login(email, password);
+      if (nextStep === 'CONFIRM_SIGN_UP') {
+        // User signed up but never confirmed their email
+        setError('Please confirm your email first. Check your inbox for the verification code.');
+      } else {
+        navigate('/');
+      }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      const msg = err instanceof Error ? err.message : 'Login failed';
+      // Make Cognito error messages more user-friendly
+      if (msg.includes('UserNotConfirmedException') || msg.includes('not confirmed')) {
+        setError('Your account is not confirmed yet. Check your email for the verification code.');
+      } else if (msg.includes('NotAuthorizedException')) {
+        setError('Incorrect email or password.');
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -28,6 +44,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full bg-white rounded-lg shadow p-8">
         <h1 className="text-2xl font-bold text-center mb-6">Sign In</h1>
+        {successMessage && <p className="text-green-600 text-sm mb-4 text-center">{successMessage}</p>}
         {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
