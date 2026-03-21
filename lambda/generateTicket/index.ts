@@ -75,13 +75,15 @@ async function processRecord(record: SQSRecord): Promise<void> {
   }));
 
   // 5. Save ticket record to DynamoDB
+  // NOTE: qrCode base64 is NOT stored here — it's embedded in the PDF on S3.
+  // DynamoDB GSI keys have a 2048-byte limit; a QR PNG base64 is ~5KB.
+  // Validation works via ticketId embedded in the QR payload JSON, not by querying qrCode.
   const now = new Date().toISOString();
   const ticketItem = {
     ticketId: registrationId,
     registrationId,
     eventId,
     userId,
-    qrCode: qrCodeBase64,
     status: 'generated',
     generatedAt: now,
     s3Key,
